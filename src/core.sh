@@ -124,13 +124,16 @@ get_uuid() {
     tmp_uuid=$(cat /proc/sys/kernel/random/uuid)
 }
 
+# get server ip
 get_ip() {
-    [[ $ip || $is_no_auto_tls || $is_gen || $is_dont_get_ip ]] && return
-    export "$(_wget -4 -qO- https://one.one.one.one/cdn-cgi/trace | grep ip=)" &>/dev/null
-    [[ ! $ip ]] && export "$(_wget -6 -qO- https://one.one.one.one/cdn-cgi/trace | grep ip=)" &>/dev/null
-    [[ ! $ip ]] && {
-        err "获取服务器 IP 失败.."
-    }
+    # 强制只获取 IPv4 地址，增加 5 秒超时限制，增加备用接口
+    # 尝试第一个接口 (one.one.one.one)
+    export "$(_wget -4 -qO- --timeout=5 --tries=1 https://one.one.one.one/cdn-cgi/trace 2>/dev/null | grep ip=)"
+    
+    # 如果第一个接口失败，尝试第二个接口 (cloudflare.com)
+    if [[ -z $ip ]]; then
+        export "$(_wget -4 -qO- --timeout=5 --tries=1 https://cloudflare.com/cdn-cgi/trace 2>/dev/null | grep ip=)"
+    fi
 }
 
 get_port() {
