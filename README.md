@@ -29,7 +29,7 @@
 
 # 执行
 ```
-curl -L https://github.com/flyduckfly/sing-box/raw/main/install.sh | bash
+curl -L https://github.com/flyduckfly/xray/raw/main/install.sh | bash
 ```
 
 # 文档
