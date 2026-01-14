@@ -189,8 +189,29 @@ download() {
 
 # get server ip
 get_ip() {
-    export "$(_wget -4 -qO- https://one.one.one.one/cdn-cgi/trace | grep ip=)" &>/dev/null
-    [[ -z $ip ]] && export "$(_wget -6 -qO- https://one.one.one.one/cdn-cgi/trace | grep ip=)" &>/dev/null
+    # 只获取IPv4地址，尝试多个API
+    local api_endpoints=(
+        "https://api-ipv4.ip.sb/geoip"
+        "https://api.ipapi.is"
+    )
+    
+    for api in "${api_endpoints[@]}"; do
+        local response=$(_wget -4 -qO- "$api" 2>/dev/null)
+        if [[ -n "$response" ]]; then
+            # 尝试解析JSON响应获取IP
+            local extracted_ip=$(echo "$response" | jq -r '.ip // .query // .address // .ip_address' 2>/dev/null)
+            if [[ -n "$extracted_ip" && "$extracted_ip" != "null" ]]; then
+                export ip="$extracted_ip"
+                return 0
+            fi
+        fi
+        # 短暂延迟，避免请求过快
+        sleep 0.5
+    done
+    
+    # 如果所有API都失败，返回空
+    export ip=""
+    return 1
 }
 
 # check background tasks status
